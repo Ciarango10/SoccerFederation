@@ -21,11 +21,10 @@ public class GamePlayerEligibilityHandlerTest {
         
         // Link the player to the game
         Game_Player__c gamePlayer = new Game_Player__c(Player__c = player.Id, Game__c = game.Id);
-        insert gamePlayer;
         
         // 2. Act: Call the method under test
         Test.startTest();
-        GamePlayerEligibilityHandler.updateGamePlayerEligibility(new List<Game_Player__c>{gamePlayer});
+        insert gamePlayer;
         Test.stopTest();
         
         // 3. Assert: Verify that the player status was updated correctly
@@ -53,11 +52,10 @@ public class GamePlayerEligibilityHandlerTest {
         
         // Link the player to the game
         Game_Player__c gamePlayer = new Game_Player__c(Player__c = player.Id, Game__c = game.Id);
-        insert gamePlayer;
         
         // 2. Act: Call the method under test
         Test.startTest();
-        GamePlayerEligibilityHandler.updateGamePlayerEligibility(new List<Game_Player__c>{gamePlayer});
+        insert gamePlayer;
         Test.stopTest();
         
         // 3. Assert: Verify that the player and game statuses were updated correctly
@@ -97,7 +95,9 @@ public class GamePlayerEligibilityHandlerTest {
         }
         
         // 2. Act: Insert game players and update statuses
+        Test.startTest();
         insert gamePlayers;
+        Test.stopTest();
         
         // 3. Assert: Verify that all players and games were updated correctly
         List<Player__c> updatedPlayers = [SELECT Player_Status__c FROM Player__c WHERE Id IN :players];
@@ -121,5 +121,44 @@ public class GamePlayerEligibilityHandlerTest {
             }
         }
     } 
+
+    @isTest
+    static void testInsufficientPlayersInTeam() {
+        // 1. Arrange: Set up test data
+        Federation__c federation = new Federation__c(Name = 'Federacion Colombiana de futbol');
+        insert federation;
+        
+        // Create a team with fewer than 7 players
+        Team__c team = new Team__c(Name = 'Team with few players', Federation__c = federation.Id);
+        insert team;
+    
+        // Create 5 players for the team (less than 7)
+        List<Player__c> players = new List<Player__c>();
+        for (Integer i = 0; i < 5; i++) {
+            players.add(new Player__c(Name = 'Player ' + i, Games_Played__c = 3, Player_Status__c = 'Ineligible', Team__c = team.Id));
+        }
+        insert players;
+    
+        // Create a game
+        Game__c game = new Game__c(Game_Status__c = 'Scheduled', Home_Team__c = team.Id, Federation__c = federation.Id);
+        insert game;
+    
+        // Link the players to the game
+        List<Game_Player__c> gamePlayers = new List<Game_Player__c>();
+        for (Player__c player : players) {
+            gamePlayers.add(new Game_Player__c(Player__c = player.Id, Game__c = game.Id));
+        }
+    
+        // 2. Act: Attempt to insert the Game_Player__c records
+        Test.startTest();
+        Database.SaveResult[] results = Database.insert(gamePlayers, false);
+        Test.stopTest();
+    
+        // 3. Assert: Verify that errors were generated
+        for (Database.SaveResult result : results) {
+            System.assert(!result.isSuccess(), 'The record should not have been inserted successfully');
+            System.assert(result.getErrors()[0].getMessage().contains('Team '), 'The error message should indicate that the team has too few players.');
+        }
+    }
 
 }

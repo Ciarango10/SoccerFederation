@@ -2,11 +2,12 @@ public class ArchiveGamesBatch implements Database.Batchable<SObject>, Schedulab
     
     // The start method retrieves games older than 6 months with 'Completed' or 'Canceled' status.
     public Database.QueryLocator start(Database.BatchableContext bc) {
+        Date cutoffDate = System.today().addMonths(-6);
         return Database.getQueryLocator([
             SELECT Id, Name, Game_Status__c, Game_Date__c, City__c, Start_Time__c, End_Time__c, Federation__c,Game_Type__c, Home_Team__c, Opponent_Team__c, Is_Invalid__c, Score__c, Stadium__c
             FROM Game__c
             WHERE Game_Status__c IN ('Completed', 'Canceled') 
-            AND Game_Date__c < :System.today().addMonths(-6)
+            AND Game_Date__c < :cutoffDate
         ]);
     }
     
@@ -56,28 +57,14 @@ public class ArchiveGamesBatch implements Database.Batchable<SObject>, Schedulab
             }
         }
         
-        // Attempts to insert the archive records into Archived_Game__c.
-        try {
-            if (!archivedGames.isEmpty()) {
-                insert archivedGames;
-                if (Test.isRunningTest()) {
-                    throw new DmlException('Testing DML Exception.');
-                }
-            }
-        } catch (DmlException e) {
-            System.debug('Error inserting archived games: ' + e.getMessage());
+        // Attempts to insert the archive records into Archived_Game__c.  
+        if (!archivedGames.isEmpty()) {
+            Database.insert(archivedGames, false);
         }
-
-        // Attempts to delete the original game records that were successfully archived.
-        try {
-            if (!gameIdsToDelete.isEmpty()) {
-                delete games;
-                if (Test.isRunningTest()) {
-                    throw new DmlException('Testing DML Exception.');
-                }
-            }
-        } catch (DmlException e) {
-            System.debug('Error deleting original games: ' + e.getMessage());
+       
+        // Attempts to delete the original game records that were successfully archived.     
+        if (!gameIdsToDelete.isEmpty()) {
+            Database.delete(gameIdsToDelete, false);
         }
 
     }

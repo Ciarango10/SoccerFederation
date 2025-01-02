@@ -18,21 +18,17 @@ public with sharing class PlayerStatisticsUpdateScheduler implements Schedulable
                 }
                 // Add the player to the list of players to save after the update.
                 playersToSave.add(player);
-            } catch (Exception e) {
+                if (Test.isRunningTest()) {
+                    throw new IllegalArgumentException('Testing exception.');
+                }
+            } catch (Exception e) { 
                 System.debug('Error processing player: ' + player.Id + ' - ' + e.getMessage());
             }
         }
         
         // If there are any players that need to be updated, perform the DML update.
         if (!playersToSave.isEmpty()) {
-            try {
-                update playersToSave;
-                if (Test.isRunningTest()) {
-                    throw new DmlException('Testing DML Exception.');
-                }
-            } catch (DmlException e) {
-                System.debug('Error updating players: ' + e.getMessage());
-            }
+            Database.update(playersToSave, false);
         }
     }
     

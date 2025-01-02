@@ -1,4 +1,10 @@
 public with sharing class GamePlayerEligibilityHandler {
+
+    // Constants for picklist values
+    public static final String PLAYER_STATUS_ELIGIBLE = 'Eligible';
+    public static final String PLAYER_STATUS_PENDING_REVIEW = 'Pending Review';
+    public static final String GAME_STATUS_PENDING_PLAYER = 'Pending Player';
+
     public static void updateGamePlayerEligibility(List<Game_Player__c> gamePlayers) {
         // Sets to hold the IDs of players and games
         Set<Id> playerIds = new Set<Id>();
@@ -42,7 +48,11 @@ public with sharing class GamePlayerEligibilityHandler {
         for (Id teamId : playersByTeam.keySet()) {
             List<Player__c> teamPlayers = playersByTeam.get(teamId);
             if (teamPlayers.size() < 7) { 
-                throw new InvalidGameConfigurationException('Team ' + teamId + ' has insufficient players. At least 7 players are required.');
+                for (Game_Player__c gamePlayer : gamePlayers) {
+                    if (teamId == playersMap.get(gamePlayer.Player__c)?.Team__c) {
+                        gamePlayer.addError('Team ' + teamId + ' has insufficient players. At least 7 players are required.');
+                    }
+                }
             }
         }
 
@@ -57,21 +67,21 @@ public with sharing class GamePlayerEligibilityHandler {
             if (player != null) {
                 // Check eligibility rules
                 if (player.Games_Played__c < 5) {
-                    if (player.Player_Status__c != 'Eligible') {
-                        player.Player_Status__c = 'Eligible';
+                    if (player.Player_Status__c != PLAYER_STATUS_ELIGIBLE) {
+                        player.Player_Status__c = PLAYER_STATUS_ELIGIBLE;
                         playersToUpdate.add(player);
                     }
                 } else {
-                    if (player.Player_Status__c != 'Pending Review') {
-                        player.Player_Status__c = 'Pending Review';
+                    if (player.Player_Status__c != PLAYER_STATUS_PENDING_REVIEW) {
+                        player.Player_Status__c = PLAYER_STATUS_PENDING_REVIEW;
                         playersToUpdate.add(player);
                     }
 
                     // Update Game status if needed
                     if (gamePlayer.Game__c != null && gamesMap.containsKey(gamePlayer.Game__c)) {
                         Game__c game = gamesMap.get(gamePlayer.Game__c);
-                        if (game != null && game.Game_Status__c != 'Pending Player') {
-                            game.Game_Status__c = 'Pending Player';
+                        if (game != null && game.Game_Status__c != GAME_STATUS_PENDING_PLAYER) {
+                            game.Game_Status__c = GAME_STATUS_PENDING_PLAYER;
                             gamesToUpdate.add(game);
                         }
                     }
@@ -80,15 +90,12 @@ public with sharing class GamePlayerEligibilityHandler {
         }
 
         // Perform bulk updates
-        try {
-            if (!playersToUpdate.isEmpty()) {
-                update playersToUpdate;
-            }
-            if (!gamesToUpdate.isEmpty()) {
-                update gamesToUpdate;
-            }
-        } catch (DmlException e) {
-            System.debug('Error during updates: ' + e.getMessage());
+        if (!playersToUpdate.isEmpty()) {
+            Database.update(playersToUpdate, false);
         }
+        if (!gamesToUpdate.isEmpty()) {
+            Database.update(gamesToUpdate, false);
+        }     
     }
+    
 }
