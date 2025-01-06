@@ -49,9 +49,6 @@ public class ArchiveGamesBatch implements Database.Batchable<SObject>, Schedulab
                     Stadium__c = game.Stadium__c
                 ));
                 gameIdsToDelete.add(game.Id); // Add game ID for deletion after archival.
-                if (Test.isRunningTest()) {
-                    throw new InvalidGameConfigurationException('Testing Invalid game configuration.');
-                }
             } catch (InvalidGameConfigurationException e) {
                 System.debug('Invalid game configuration for Game Id: ' + game.Id + '. Message: ' + e.getMessage());
             }

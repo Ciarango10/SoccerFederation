@@ -78,5 +78,29 @@ private class PlayerStatisticsUpdateSchedulerTest {
         Player__c updatedPlayer = [SELECT Win_Rate__c FROM Player__c WHERE Id = :testPlayer.Id];
         System.assertEquals(0, updatedPlayer.Win_Rate__c, 'Win_Rate__c should be 0 when Wins__c is null.');
     }
+
+    @isTest
+    static void testNegativeWins() {
+        // Insert a player record with specific conditions to reach Catch
+        Player__c testPlayer = new Player__c(
+            Name = 'Test Player',
+            Games_Played__c = 1, 
+            Wins__c = -10       
+        );
+        insert testPlayer;
+
+        // Instantiate the Scheduler and run it
+        Test.startTest();
+        PlayerStatisticsUpdateScheduler scheduler = new PlayerStatisticsUpdateScheduler();
+        String cronExp = '0 0 0 1 1 ? 2099';  
+        System.schedule('Test Player Exception', cronExp, scheduler);
+        Test.stopTest();
+        
+        // Query the updated player and assert the Win_Rate__c
+        Player__c updatedPlayer = [SELECT Win_Rate__c FROM Player__c WHERE Id = :testPlayer.Id];
+        
+        // Assert that Win_Rate__c was set to 0 since Wins__c is negative
+        System.assertEquals(0, updatedPlayer.Win_Rate__c, 'Win_Rate__c should be 0 when Wins__c is negative');
+    }
     
 }

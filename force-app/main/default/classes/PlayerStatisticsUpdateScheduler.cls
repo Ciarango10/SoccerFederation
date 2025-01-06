@@ -8,22 +8,17 @@ public with sharing class PlayerStatisticsUpdateScheduler implements Schedulable
         List<Player__c> playersToSave = new List<Player__c>();
         
         for (Player__c player: playersToUpdate) {
-            try {
-                if (player.Games_Played__c == null || player.Games_Played__c == 0) {
+            if (player.Games_Played__c == null || player.Games_Played__c == 0) {
+                player.Win_Rate__c = 0;
+            } else {
+                if (player.Wins__c == null || player.Wins__c < 0) {
                     player.Win_Rate__c = 0;
-                } else if (player.Wins__c != null) {
-                    player.Win_Rate__c = (player.Wins__c / player.Games_Played__c) * 100;
                 } else {
-                    player.Win_Rate__c = 0; 
+                    player.Win_Rate__c = (player.Wins__c / player.Games_Played__c) * 100;
                 }
-                // Add the player to the list of players to save after the update.
-                playersToSave.add(player);
-                if (Test.isRunningTest()) {
-                    throw new IllegalArgumentException('Testing exception.');
-                }
-            } catch (Exception e) { 
-                System.debug('Error processing player: ' + player.Id + ' - ' + e.getMessage());
             }
+            // Add the player to the list of players to save after the update.
+            playersToSave.add(player);
         }
         
         // If there are any players that need to be updated, perform the DML update.
