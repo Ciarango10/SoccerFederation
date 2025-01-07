@@ -10,6 +10,7 @@ public with sharing class PlayerStatisticsUpdateScheduler implements Schedulable
         for (Player__c player: playersToUpdate) {
             if (player.Games_Played__c == null || player.Games_Played__c == 0) {
                 player.Win_Rate__c = 0;
+                player.Wins__c = 0;
             } else {
                 if (player.Wins__c == null || player.Wins__c < 0) {
                     player.Win_Rate__c = 0;
